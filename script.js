@@ -1,136 +1,115 @@
 // script.js
 
-// Get DOM elements
-const video = document.querySelector('video');
-const borderHighlight = document.getElementById('border-highlight');
-const gestureBox = document.getElementById('gesture-box');
+const video = document.getElementById("camera");
+const canvas = document.getElementById("gesture-overlay");
+const ctx = canvas.getContext("2d");
+const gestureName = document.getElementById("gesture-name");
 
-// Set canvas dimensions to match video feed
-const canvas = document.createElement('canvas');
-canvas.width = 640;
-canvas.height = 480;
-const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-// Function to set up the rear camera
-async function setupRearCamera() {
-  const devices = await navigator.mediaDevices.enumerateDevices();
-  const rearCamera = devices.find(
-    (device) =>
-      device.kind === 'videoinput' && device.label.toLowerCase().includes('back')
-  );
-
-  if (!rearCamera) {
-    console.error('Rear camera not found.');
-    return;
-  }
-
-  const constraints = {
-    video: {
-      deviceId: rearCamera.deviceId ? { exact: rearCamera.deviceId } : undefined,
-      facingMode: { ideal: 'environment' }, // Prefer rear camera
-    },
-  };
-
-  const stream = await navigator.mediaDevices.getUserMedia(constraints);
-  video.srcObject = stream;
-  return new Promise((resolve) => {
-    video.onloadedmetadata = () => {
-      resolve(video);
-    };
-  });
+// Set up the rear camera
+async function setupCamera() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment" }
+        });
+        video.srcObject = stream;
+        return new Promise((resolve) => {
+            video.onloadedmetadata = () => resolve(video);
+        });
+    } catch (error) {
+        console.error("Camera setup failed:", error);
+        alert("Unable to access the camera.");
+    }
 }
 
-// Function to load the Handpose model
-async function loadHandposeModel() {
-  try {
+// Load the Handpose model
+async function loadHandpose() {
     const model = await handpose.load();
-    console.log('Handpose model loaded successfully.');
+    console.log("Handpose model loaded.");
     return model;
-  } catch (error) {
-    console.error('Error loading the Handpose model:', error);
-    alert('Failed to load the Handpose model. Please check your internet connection.');
-  }
 }
 
-// Function to detect hand gestures
-async function detectHandGestures(model) {
-  if (!model) return;
+// Detect gestures
+async function detectGestures(model) {
+    const predictions = await model.estimateHands(video);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Get hand predictions
-  const predictions = await model.estimateHands(video);
+    if (predictions.length > 0) {
+        const landmarks = predictions[0].landmarks;
+        drawHand(landmarks);
+        const gesture = recognizeGesture(landmarks);
+        gestureName.textContent = gesture;
+    } else {
+        gestureName.textContent = "None";
+    }
 
-  // Clear the canvas
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  if (predictions.length > 0) {
-    // Hand detected
-    borderHighlight.setAttribute('visible', true);
-    gestureBox.setAttribute('visible', true);
-
-    // Draw hand landmarks
-    const landmarks = predictions[0].landmarks;
-    drawHand(landmarks);
-
-    // Check for specific gestures
-    checkGesture(landmarks);
-  } else {
-    // No hand detected
-    borderHighlight.setAttribute('visible', false);
-    gestureBox.setAttribute('visible', false);
-    gestureBox.setAttribute('text', 'value: No hand detected; align: center; width: 4; color: white');
-  }
-
-  // Continuously detect gestures
-  requestAnimationFrame(() => detectHandGestures(model));
+    requestAnimationFrame(() => detectGestures(model));
 }
 
-// Function to draw hand landmarks on the canvas
+// Draw hand landmarks
 function drawHand(landmarks) {
-  ctx.fillStyle = 'red';
-  for (let i = 0; i < landmarks.length; i++) {
-    const [x, y] = landmarks[i];
-    ctx.beginPath();
-    ctx.arc(x, y, 5, 0, 2 * Math.PI); // Draw a circle for each landmark
-    ctx.fill();
-  }
+    ctx.fillStyle = "red";
+    landmarks.forEach(([x, y]) => {
+        ctx.beginPath();
+        ctx.arc(
+            x / video.videoWidth * canvas.width,
+            y / video.videoHeight * canvas.height,
+            5, 0, 2 * Math.PI
+        );
+        ctx.fill();
+    });
 }
 
-// Function to check for specific gestures
-function checkGesture(landmarks) {
-  // Get key landmarks
-  const thumbTip = landmarks[4];  // Thumb tip
-  const indexTip = landmarks[8];  // Index finger tip
-  const middleTip = landmarks[12]; // Middle finger tip
-  const ringTip = landmarks[16];  // Ring finger tip
-  const pinkyTip = landmarks[20]; // Pinky finger tip
+// Recognize gestures
+function recognizeGesture(landmarks) {
+    const [thumbTip, indexTip, middleTip, ringTip, pinkyTip] = [
+        landmarks[4], landmarks[8], landmarks[12], landmarks[16], landmarks[20]
+    ];
 
-  // Check for "Open Hand" gesture
-  const isHandOpen = thumbTip[1] < indexTip[1] && indexTip[1] < middleTip[1] && middleTip[1] < ringTip[1] && ringTip[1] < pinkyTip[1];
+    // Open Hand: All fingers extended
+    const isOpenHand = thumbTip[1] < indexTip[1] &&
+                       indexTip[1] < middleTip[1] &&
+                       middleTip[1] < ringTip[1] &&
+                       ringTip[1] < pinkyTip[1];
 
-  // Check for "Closed Fist" gesture
-  const isHandClosed = thumbTip[1] > indexTip[1] && indexTip[1] > middleTip[1] && middleTip[1] > ringTip[1] && ringTip[1] > pinkyTip[1];
+    // Closed Fist: All fingertips are close to the palm
+    const isClosedFist = thumbTip[1] > indexTip[1] &&
+                         indexTip[1] > middleTip[1] &&
+                         middleTip[1] > ringTip[1] &&
+                         ringTip[1] > pinkyTip[1];
 
-  // Update response based on gesture
-  if (isHandOpen) {
-    gestureBox.setAttribute('text', 'value: Hand Open Detected! 🖐️; align: center; width: 4; color: white');
-  } else if (isHandClosed) {
-    gestureBox.setAttribute('text', 'value: Closed Fist Detected! ✊; align: center; width: 4; color: white');
-  } else {
-    gestureBox.setAttribute('text', 'value: No specific gesture detected.; align: center; width: 4; color: white');
-  }
+    // Thumbs Up: Thumb extended, other fingers curled
+    const isThumbsUp = thumbTip[1] < indexTip[1] &&
+                       indexTip[1] > middleTip[1] &&
+                       middleTip[1] > ringTip[1] &&
+                       ringTip[1] > pinkyTip[1];
+
+    // Thumbs Down: Thumb extended downward, other fingers curled
+    const isThumbsDown = thumbTip[1] > indexTip[1] &&
+                         indexTip[1] > middleTip[1] &&
+                         middleTip[1] > ringTip[1] &&
+                         ringTip[1] > pinkyTip[1];
+
+    // Peace Sign: Thumb curled, index and middle extended, others curled
+    const isPeaceSign = thumbTip[1] > indexTip[1] &&
+                        indexTip[1] < middleTip[1] &&
+                        middleTip[1] > ringTip[1] &&
+                        ringTip[1] > pinkyTip[1];
+
+    if (isOpenHand) return "Open Hand 🖐️";
+    if (isClosedFist) return "Closed Fist ✊";
+    if (isThumbsUp) return "Thumbs Up 👍";
+    if (isThumbsDown) return "Thumbs Down 👎";
+    if (isPeaceSign) return "Peace ✌️";
+
+    return "Unknown Gesture";
 }
 
-// Initialize the project
-async function init() {
-  // Set up the rear camera
-  await setupRearCamera();
-
-  // Load the Handpose model
-  const model = await loadHandposeModel();
-
-  // Start detecting hand gestures
-  detectHandGestures(model);
-}
-
-// Run the initialization function
-init();
+// Initialize app
+(async function init() {
+    await setupCamera();
+    const model = await loadHandpose();
+    detectGestures(model);
+})();
