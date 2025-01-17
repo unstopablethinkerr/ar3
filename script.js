@@ -20,14 +20,20 @@ async function init() {
   detectHands();
 }
 
-// Start the camera feed
+// Start the rear camera feed
 function startVideo() {
-  navigator.mediaDevices.getUserMedia({ video: true })
+  const constraints = {
+    video: {
+      facingMode: "environment" // Use the rear camera
+    }
+  };
+
+  navigator.mediaDevices.getUserMedia(constraints)
     .then(stream => {
       video.srcObject = stream;
     })
     .catch(err => {
-      console.error("Error accessing the camera: ", err);
+      console.error("Error accessing the rear camera: ", err);
     });
 }
 
