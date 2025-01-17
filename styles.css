@@ -53,7 +53,7 @@ body {
 #gesture-box { 
      position: absolute;
     bottom: 10%;
-    left: 50%;
+align: center;
     transform: translateX(-50%);
 box-shadow: rgba(240, 46, 170, 0.4) -5px 5px, rgba(240, 46, 170, 0.3) -10px 10px, rgba(240, 46, 170, 0.2) -15px 15px, rgba(240, 46, 170, 0.1) -20px 20px;
   background: #fff;
