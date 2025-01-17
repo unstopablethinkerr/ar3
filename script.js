@@ -1,28 +1,24 @@
 // script.js
 
-// Load Handtrack.js model
-const modelParams = {
-  flipHorizontal: true, // Mirror the video feed
-  maxNumBoxes: 1, // Detect only one hand
-  iouThreshold: 0.5, // Intersection over union threshold
-  scoreThreshold: 0.7, // Confidence threshold
-};
+// Get DOM elements
+const video = document.querySelector('video');
+const borderHighlight = document.getElementById('border-highlight');
+const gestureBox = document.getElementById('gesture-box');
 
-let model;
+// Set canvas dimensions to match video feed
+const canvas = document.createElement('canvas');
+canvas.width = 640;
+canvas.height = 480;
+const ctx = canvas.getContext('2d');
 
-// Function to get the rear camera
-async function getRearCamera() {
+// Function to set up the rear camera
+async function setupRearCamera() {
   const devices = await navigator.mediaDevices.enumerateDevices();
   const rearCamera = devices.find(
     (device) =>
       device.kind === 'videoinput' && device.label.toLowerCase().includes('back')
   );
-  return rearCamera;
-}
 
-// Function to start the rear camera
-async function startRearCamera() {
-  const rearCamera = await getRearCamera();
   if (!rearCamera) {
     console.error('Rear camera not found.');
     return;
@@ -36,78 +32,105 @@ async function startRearCamera() {
   };
 
   const stream = await navigator.mediaDevices.getUserMedia(constraints);
-  const video = document.querySelector('video');
-  if (video) {
-    video.srcObject = stream;
-  } else {
-    console.error('Video element not found.');
+  video.srcObject = stream;
+  return new Promise((resolve) => {
+    video.onloadedmetadata = () => {
+      resolve(video);
+    };
+  });
+}
+
+// Function to load the Handpose model
+async function loadHandposeModel() {
+  try {
+    const model = await handpose.load();
+    console.log('Handpose model loaded successfully.');
+    return model;
+  } catch (error) {
+    console.error('Error loading the Handpose model:', error);
+    alert('Failed to load the Handpose model. Please check your internet connection.');
   }
 }
 
-// Function to detect hands and gestures
-async function detectHands() {
-  const video = document.querySelector('video');
-  const borderHighlight = document.getElementById('border-highlight');
-  const gestureBox = document.getElementById('gesture-box');
+// Function to detect hand gestures
+async function detectHandGestures(model) {
+  if (!model) return;
 
-  setInterval(async () => {
-    const predictions = await model.detect(video);
-    if (predictions.length > 0) {
-      // Hand detected
-      borderHighlight.setAttribute('visible', true);
-      gestureBox.setAttribute('visible', true);
+  // Get hand predictions
+  const predictions = await model.estimateHands(video);
 
-      // Recognize gesture
-      const gesture = recognizeGesture(predictions);
-      gestureBox.setAttribute(
-        'text',
-        `value: ${gesture}; align: center; width: 4; color: white`
-      );
-    } else {
-      // No hand detected
-      borderHighlight.setAttribute('visible', false);
-      gestureBox.setAttribute('visible', false);
-    }
-  }, 100); // Adjust detection frequency
-}
+  // Clear the canvas
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-// Function to recognize gestures
-function recognizeGesture(predictions) {
   if (predictions.length > 0) {
-    const hand = predictions[0];
-    const fingersUp = countFingers(hand.landmarks); // Custom function to count fingers
+    // Hand detected
+    borderHighlight.setAttribute('visible', true);
+    gestureBox.setAttribute('visible', true);
 
-    if (fingersUp === 1) {
-      return 'Thumbs Up';
-    } else if (fingersUp === 2) {
-      return 'Peace Sign';
-    } else if (fingersUp === 5) {
-      return 'Open Hand';
-    } else {
-      return 'Hand Detected';
-    }
+    // Draw hand landmarks
+    const landmarks = predictions[0].landmarks;
+    drawHand(landmarks);
+
+    // Check for specific gestures
+    checkGesture(landmarks);
+  } else {
+    // No hand detected
+    borderHighlight.setAttribute('visible', false);
+    gestureBox.setAttribute('visible', false);
+    gestureBox.setAttribute('text', 'value: No hand detected; align: center; width: 4; color: white');
   }
-  return 'No Gesture';
+
+  // Continuously detect gestures
+  requestAnimationFrame(() => detectHandGestures(model));
 }
 
-// Function to count fingers (placeholder logic)
-function countFingers(landmarks) {
-  // Implement logic to count fingers based on hand landmarks
-  // For now, return a random number for demonstration
-  return Math.floor(Math.random() * 6); // Random number between 0 and 5
+// Function to draw hand landmarks on the canvas
+function drawHand(landmarks) {
+  ctx.fillStyle = 'red';
+  for (let i = 0; i < landmarks.length; i++) {
+    const [x, y] = landmarks[i];
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, 2 * Math.PI); // Draw a circle for each landmark
+    ctx.fill();
+  }
 }
 
-// Initialize the app
+// Function to check for specific gestures
+function checkGesture(landmarks) {
+  // Get key landmarks
+  const thumbTip = landmarks[4];  // Thumb tip
+  const indexTip = landmarks[8];  // Index finger tip
+  const middleTip = landmarks[12]; // Middle finger tip
+  const ringTip = landmarks[16];  // Ring finger tip
+  const pinkyTip = landmarks[20]; // Pinky finger tip
+
+  // Check for "Open Hand" gesture
+  const isHandOpen = thumbTip[1] < indexTip[1] && indexTip[1] < middleTip[1] && middleTip[1] < ringTip[1] && ringTip[1] < pinkyTip[1];
+
+  // Check for "Closed Fist" gesture
+  const isHandClosed = thumbTip[1] > indexTip[1] && indexTip[1] > middleTip[1] && middleTip[1] > ringTip[1] && ringTip[1] > pinkyTip[1];
+
+  // Update response based on gesture
+  if (isHandOpen) {
+    gestureBox.setAttribute('text', 'value: Hand Open Detected! 🖐️; align: center; width: 4; color: white');
+  } else if (isHandClosed) {
+    gestureBox.setAttribute('text', 'value: Closed Fist Detected! ✊; align: center; width: 4; color: white');
+  } else {
+    gestureBox.setAttribute('text', 'value: No specific gesture detected.; align: center; width: 4; color: white');
+  }
+}
+
+// Initialize the project
 async function init() {
-  // Load Handtrack.js model
-  model = await handTrack.load(modelParams);
+  // Set up the rear camera
+  await setupRearCamera();
 
-  // Start the rear camera
-  await startRearCamera();
+  // Load the Handpose model
+  const model = await loadHandposeModel();
 
-  // Start hand detection
-  detectHands();
+  // Start detecting hand gestures
+  detectHandGestures(model);
 }
 
-// Initialize the app
+// Run the initialization function
 init();
