@@ -3,16 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hand Gesture Detection</title>
+    <title>AR Hand Gesture Control</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/handpose"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.rawgit.com/mrdoob/three.js/master/examples/js/loaders/GLTFLoader.js"></script>
 </head>
 <body>
     <div id="camera-container">
         <video id="camera" autoplay playsinline></video>
         <canvas id="gesture-overlay"></canvas>
     </div>
+    <div id="ar-container"></div>
     <div id="gesture-box">Gesture: <span id="gesture-name">None</span></div>
     <script src="script.js"></script>
 </body>
