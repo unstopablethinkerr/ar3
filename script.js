@@ -36,11 +36,8 @@ async function detectGestures(model) {
 
     if (predictions.length > 0) {
         const landmarks = predictions[0].landmarks;
-        const augmentedLandmarks = augmentData(landmarks);
-        applyBackgroundSubtraction(video, canvas, ctx);
-        segmentHandRegion(augmentedLandmarks, canvas, ctx);
-        drawHand(augmentedLandmarks);
-        const gesture = recognizeGesture(augmentedLandmarks);
+        drawHand(landmarks);
+        const gesture = recognizeGesture(landmarks);
         gestureName.textContent = gesture;
     } else {
         gestureName.textContent = "None";
@@ -99,56 +96,38 @@ function recognizeGesture(landmarks) {
                         middleTip[1] > ringTip[1] &&
                         ringTip[1] > pinkyTip[1];
 
+    // Pointing: Index finger extended, other fingers curled
+    const isPointing = indexTip[1] < middleTip[1] &&
+                       middleTip[1] > ringTip[1] &&
+                       ringTip[1] > pinkyTip[1];
+
+    // OK Sign: Thumb and index finger touching, other fingers curled
+    const isOKSign = Math.abs(thumbTip[0] - indexTip[0]) < 20 &&
+                     Math.abs(thumbTip[1] - indexTip[1]) < 20 &&
+                     middleTip[1] > ringTip[1] &&
+                     ringTip[1] > pinkyTip[1];
+
+    // Rock (Rock-on): Index and pinky fingers extended, thumb curled, other fingers curled
+    const isRockSign = indexTip[1] < middleTip[1] &&
+                       pinkyTip[1] < ringTip[1] &&
+                       middleTip[1] > ringTip[1];
+
+    // Spread Fingers: All fingers spread apart
+    const isSpreadFingers = Math.abs(indexTip[0] - middleTip[0]) > 50 &&
+                            Math.abs(middleTip[0] - ringTip[0]) > 50 &&
+                            Math.abs(ringTip[0] - pinkyTip[0]) > 50;
+
     if (isOpenHand) return "Open Hand 🖐️";
     if (isClosedFist) return "Closed Fist ✊";
     if (isThumbsUp) return "Thumbs Up 👍";
     if (isThumbsDown) return "Thumbs Down 👎";
     if (isPeaceSign) return "Peace ✌️";
+    if (isPointing) return "Pointing ☝️";
+    if (isOKSign) return "OK 👌";
+    if (isRockSign) return "Rock-on 🤘";
+    if (isSpreadFingers) return "Spread Fingers 🖐";
 
     return "Unknown Gesture";
-}
-
-// Data Augmentation
-function augmentData(landmarks) {
-    // Example: Rotate landmarks
-    const rotatedLandmarks = landmarks.map(point => {
-        // Rotate point by 90 degrees
-        return [point[1], -point[0]];
-    });
-    return rotatedLandmarks;
-}
-
-// Background Subtraction
-function applyBackgroundSubtraction(video, canvas, ctx) {
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
-
-    for (let i = 0; i < data.length; i += 4) {
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
-        // Simple thresholding
-        if (r < 100 && g < 100 && b < 100) {
-            data[i + 3] = 0; // Set alpha to 0 (transparent)
-        }
-    }
-    ctx.putImageData(imageData, 0, 0);
-}
-
-// Hand Region Segmentation
-function segmentHandRegion(landmarks, canvas, ctx) {
-    ctx.beginPath();
-    landmarks.forEach((point, index) => {
-        if (index === 0) {
-            ctx.moveTo(point[0], point[1]);
-        } else {
-            ctx.lineTo(point[0], point[1]);
-        }
-    });
-    ctx.closePath();
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-    ctx.fill();
 }
 
 // Initialize app
