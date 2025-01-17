@@ -38,7 +38,7 @@ body {
     pointer-events: none;
 }
 
-#gesture-box {
+/* #gesture-box {
     position: absolute;
     bottom: 10%;
     left: 50%;
@@ -48,4 +48,19 @@ body {
     border-radius: 10px;
     font-size: 30px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+} */
+
+#gesture-box { 
+     position: absolute;
+    bottom: 10%;
+    left: 50%;
+    transform: translateX(-50%);
+box-shadow: rgba(240, 46, 170, 0.4) -5px 5px, rgba(240, 46, 170, 0.3) -10px 10px, rgba(240, 46, 170, 0.2) -15px 15px, rgba(240, 46, 170, 0.1) -20px 20px;
+  background: #fff;
+  border-radius: 20px;
+  padding: 20px;
+  display: flex;
+   scale: 2;
+font-size: 30px;
 }
+
