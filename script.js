@@ -49,7 +49,7 @@ function initThreeJS() {
     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
     scene.add(directionalLight);
 
-  //  loadShapes();
+    loadShapes();
     animate();
 }
 
@@ -77,6 +77,7 @@ function animate() {
     requestAnimationFrame(animate);
     if (selectedObject) {
         selectedObject.rotation.y += 0.01;
+        selectedObject.position.y = Math.sin(Date.now() * 0.002) * 0.5; // Small jump animation
     }
     renderer.render(scene, camera);
 }
@@ -118,70 +119,13 @@ function drawHand(landmarks) {
 
 // Recognize gestures
 function recognizeGesture(landmarks) {
-    const [thumbTip, indexTip, middleTip, ringTip, pinkyTip] = [
-        landmarks[4], landmarks[8], landmarks[12], landmarks[16], landmarks[20]
-    ];
-
-    // Open Hand: All fingers extended
-    const isOpenHand = thumbTip[1] < indexTip[1] &&
-                       indexTip[1] < middleTip[1] &&
-                       middleTip[1] < ringTip[1] &&
-                       ringTip[1] < pinkyTip[1];
-
-    // Closed Fist: All fingertips are close to the palm
-    const isClosedFist = thumbTip[1] > indexTip[1] &&
-                         indexTip[1] > middleTip[1] &&
-                         middleTip[1] > ringTip[1] &&
-                         ringTip[1] > pinkyTip[1];
-
-    // Thumbs Up: Thumb extended, other fingers curled
-    const isThumbsUp = thumbTip[1] < indexTip[1] &&
-                       indexTip[1] > middleTip[1] &&
-                       middleTip[1] > ringTip[1] &&
-                       ringTip[1] > pinkyTip[1];
-
-    // Thumbs Down: Thumb extended downward, other fingers curled
-    const isThumbsDown = thumbTip[1] > indexTip[1] &&
-                         indexTip[1] > middleTip[1] &&
-                         middleTip[1] > ringTip[1] &&
-                         ringTip[1] > pinkyTip[1];
-
-    // Peace Sign: Thumb curled, index and middle extended, others curled
-    const isPeaceSign = thumbTip[1] > indexTip[1] &&
-                        indexTip[1] < middleTip[1] &&
-                        middleTip[1] > ringTip[1] &&
-                        ringTip[1] > pinkyTip[1];
+    const indexTip = landmarks[8];
+    const middleTip = landmarks[12];
 
     // Pointing: Index finger extended, other fingers curled
-    const isPointing = indexTip[1] < middleTip[1] &&
-                       middleTip[1] > ringTip[1] &&
-                       ringTip[1] > pinkyTip[1];
+    const isPointing = indexTip[1] < middleTip[1];
 
-    // OK Sign: Thumb and index finger touching, other fingers curled
-    const isOKSign = Math.abs(thumbTip[0] - indexTip[0]) < 20 &&
-                     Math.abs(thumbTip[1] - indexTip[1]) < 20 &&
-                     middleTip[1] > ringTip[1] &&
-                     ringTip[1] > pinkyTip[1];
-
-    // Rock (Rock-on): Index and pinky fingers extended, thumb curled, other fingers curled
-    const isRockSign = indexTip[1] < middleTip[1] &&
-                       pinkyTip[1] < ringTip[1] &&
-                       middleTip[1] > ringTip[1];
-
-    // Spread Fingers: All fingers spread apart
-    const isSpreadFingers = Math.abs(indexTip[0] - middleTip[0]) > 50 &&
-                            Math.abs(middleTip[0] - ringTip[0]) > 50 &&
-                            Math.abs(ringTip[0] - pinkyTip[0]) > 50;
-
-    if (isOpenHand) return "Open Hand 🖐️";
-    if (isClosedFist) return "Closed Fist ✊";
-    if (isThumbsUp) return "Thumbs Up 👍";
-    if (isThumbsDown) return "Thumbs Down 👎";
-    if (isPeaceSign) return "Peace ✌️";
     if (isPointing) return "Pointing ☝️";
-    if (isOKSign) return "OK 👌";
-    if (isRockSign) return "Rock-on 🤘";
-    if (isSpreadFingers) return "Spread Fingers 🖐";
 
     return "Unknown Gesture";
 }
