@@ -53,13 +53,17 @@ function initThreeJS() {
     animate();
 }
 
-// Load 3D shapes
+// Load 3D shapes from raw GitHub links
 function loadShapes() {
     const loader = new THREE.GLTFLoader();
-    const shapePaths = ['shape1.glb', 'shape2.glb', 'shape3.glb'];
+    const shapeUrls = [
+        'https://github.com/unstopablethinkerr/ar3/raw/refs/heads/main/shape1.glb',
+        'https://github.com/unstopablethinkerr/ar3/raw/refs/heads/main/shape2.glb',
+        'https://github.com/unstopablethinkerr/ar3/raw/refs/heads/main/shape3.glb'
+    ];
 
-    shapePaths.forEach((path, index) => {
-        loader.load(path, (gltf) => {
+    shapeUrls.forEach((url, index) => {
+        loader.load(url, (gltf) => {
             const shape = gltf.scene;
             shape.position.set(index * 2 - 2, 0, 0);
             shapes.push(shape);
