@@ -49,7 +49,7 @@ function initThreeJS() {
     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
     scene.add(directionalLight);
 
-    loadShapes();
+  //  loadShapes();
     animate();
 }
 
