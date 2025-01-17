@@ -51,7 +51,7 @@ function detectHands() {
       borderHighlight.style.borderColor = 'transparent';
       gestureBox.style.display = 'none';
     }
-  }, 100); // Adjust detection frequency for performance
+  }, 50); // Adjust detection frequency for performance
 }
 
 // Initialize the app
