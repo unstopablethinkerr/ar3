@@ -1,3 +1,4 @@
+// Modified and optimized script
 const video = document.getElementById("camera");
 const canvas = document.getElementById("gesture-overlay");
 const ctx = canvas.getContext("2d");
@@ -47,6 +48,7 @@ function initThreeJS() {
     scene.add(light);
 
     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    directionalLight.position.set(1, 1, 1).normalize(); // Ensure proper lighting
     scene.add(directionalLight);
 
     loadShapes();
@@ -65,9 +67,12 @@ function loadShapes() {
     shapeUrls.forEach((url, index) => {
         loader.load(url, (gltf) => {
             const shape = gltf.scene;
-            shape.position.set(index * 2 - 2, 0, 0);
+            shape.position.set(index * 2 - 2, 0, -5); // Adjust z-position for better placement
+            shape.scale.set(0.5, 0.5, 0.5); // Adjust scale for visibility
             shapes.push(shape);
             scene.add(shape);
+        }, undefined, (error) => {
+            console.error("Error loading 3D shape:", error);
         });
     });
 }
@@ -142,7 +147,7 @@ function selectObject(landmarks) {
     mouse.y = -(screenY / window.innerHeight) * 2 + 1;
 
     raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(shapes);
+    const intersects = raycaster.intersectObjects(shapes, true); // Ensure child objects are included
 
     if (intersects.length > 0) {
         selectedObject = intersects[0].object;
