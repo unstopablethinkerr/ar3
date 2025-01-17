@@ -2,9 +2,13 @@ const video = document.getElementById("camera");
 const canvas = document.getElementById("gesture-overlay");
 const ctx = canvas.getContext("2d");
 const gestureName = document.getElementById("gesture-name");
+const arContainer = document.getElementById("ar-container");
 
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
+
+let scene, camera, renderer, shapes = [];
+let selectedObject = null;
 
 // Set up the rear camera
 async function setupCamera() {
@@ -29,6 +33,50 @@ async function loadHandposeModel() {
     return model;
 }
 
+// Initialize Three.js scene
+function initThreeJS() {
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    renderer = new THREE.WebGLRenderer({ alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    arContainer.appendChild(renderer.domElement);
+
+    camera.position.z = 5;
+
+    const light = new THREE.AmbientLight(0x404040);
+    scene.add(light);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    scene.add(directionalLight);
+
+    loadShapes();
+    animate();
+}
+
+// Load 3D shapes
+function loadShapes() {
+    const loader = new THREE.GLTFLoader();
+    const shapePaths = ['shape1.glb', 'shape2.glb', 'shape3.glb'];
+
+    shapePaths.forEach((path, index) => {
+        loader.load(path, (gltf) => {
+            const shape = gltf.scene;
+            shape.position.set(index * 2 - 2, 0, 0);
+            shapes.push(shape);
+            scene.add(shape);
+        });
+    });
+}
+
+// Animate the selected object
+function animate() {
+    requestAnimationFrame(animate);
+    if (selectedObject) {
+        selectedObject.rotation.y += 0.01;
+    }
+    renderer.render(scene, camera);
+}
+
 // Detect gestures
 async function detectGestures(model) {
     const predictions = await model.estimateHands(video);
@@ -39,6 +87,10 @@ async function detectGestures(model) {
         drawHand(landmarks);
         const gesture = recognizeGesture(landmarks);
         gestureName.textContent = gesture;
+
+        if (gesture === "Pointing ☝️") {
+            selectObject(landmarks);
+        }
     } else {
         gestureName.textContent = "None";
     }
@@ -130,9 +182,31 @@ function recognizeGesture(landmarks) {
     return "Unknown Gesture";
 }
 
+// Select object based on pointing gesture
+function selectObject(landmarks) {
+    const indexTip = landmarks[8];
+    const screenX = indexTip[0] / video.videoWidth * window.innerWidth;
+    const screenY = indexTip[1] / video.videoHeight * window.innerHeight;
+
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    mouse.x = (screenX / window.innerWidth) * 2 - 1;
+    mouse.y = -(screenY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(shapes);
+
+    if (intersects.length > 0) {
+        selectedObject = intersects[0].object;
+    } else {
+        selectedObject = null;
+    }
+}
+
 // Initialize app
 (async function init() {
     await setupCamera();
     const model = await loadHandposeModel();
+    initThreeJS();
     detectGestures(model);
 })();
