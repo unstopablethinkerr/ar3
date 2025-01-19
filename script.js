@@ -8,7 +8,7 @@ const hands = new Hands({
 });
 
 hands.setOptions({
-  maxNumHands: 2,
+  maxNumHands: 1,
   modelComplexity: 1,
   minDetectionConfidence: 0.7,
   minTrackingConfidence: 0.5,
@@ -20,7 +20,7 @@ hands.onResults(onResults);
 navigator.mediaDevices
   .getUserMedia({
     video: {
-      facingMode: 'environment', // Use back camera
+      facingMode: { exact: 'environment' }, // Force the back camera
     },
   })
   .then((stream) => {
