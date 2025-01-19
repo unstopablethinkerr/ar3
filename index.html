@@ -1,22 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR Hand Gesture Control</title>
-    <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/handpose"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.rawgit.com/mrdoob/three.js/master/examples/js/loaders/GLTFLoader.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hand Tracking</title>
+  <style>
+    /* Full-screen camera feed */
+   body, html {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+#camera-feed {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#hand-frame {
+  position: absolute;
+  border: 3px solid red;
+  display: none; /* Initially hidden */
+  z-index: 10;
+}
+
+#green-flash {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 0.5rem solid;
+  color: #00ff34;
+  display: none;
+  z-index: 5;
+}
+
+  </style>
 </head>
 <body>
-    <div id="camera-container">
-        <video id="camera" autoplay playsinline></video>
-        <canvas id="gesture-overlay"></canvas>
-    </div>
-    <div id="ar-container"></div>
-    <div id="gesture-box">Gesture: <span id="gesture-name">None</span></div>
-    <script src="script.js"></script>
+  <video id="camera-feed" autoplay playsinline></video>
+  <div id="hand-frame"></div>
+  <div id="green-flash"></div>
+
+  <!-- Include MediaPipe Hands and CameraUtils -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
